@@ -3,10 +3,12 @@ rotateLeft:
 	OUT RVELCMD
 	LOAD RMid
 	OUT LVELCMD
+	RETURN
 
 rotateRight:
 	LOAD RMid
 	OUT RVELCMD
 	LOAD LMid
 	OUT LVELCMD
+	RETURN
 	
