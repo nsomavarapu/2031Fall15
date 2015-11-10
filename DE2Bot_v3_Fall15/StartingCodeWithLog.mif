@@ -46,33 +46,33 @@ CONTENT
            021 : 2822;  -- 	JUMP   Main
            022 : 98C3;  -- 	OUT    RESETPOS    ; reset odometer in case wheels moved after programming
            023 : 80FC;  -- 	CALL   UARTClear   ; empty the UART receive FIFO of any old data
-           024 : B800;  -- 		LOADI  0
-           025 : 9883;  -- 		OUT	   LVELCMD ; stop motors
-           026 : 988B;  -- 		OUT    RVELCMD
-           027 : B85A;  -- 		LOADI 	90; puts angle to target in toDest
-           028 : 1229;  -- 		STORE AngToDest
-           029 : 90C2;  -- 		IN	THETA
-           02A : 2229;  -- 		SUB AngToDest
-           02B : 1228;  -- 		STORE AngBetween
-           02C : 68B4;  -- 		ADDI 180
-           02D : 3033;  -- 		JNEG Add360
-           02E : 6F4C;  -- 		ADDI -180
-           02F : 3836;  -- 		JPOS Sub360
-           030 : 6F4C;  -- 		ADDI -180
-           031 : 3039;  -- 		JNEG	RotateLeft
-           032 : 283C;  -- 		JUMP	RotateRight
-           033 : 0A28;  -- 		LOAD	AngBetween
-           034 : 6968;  -- 		ADDI	360
-           035 : 2830;  -- 		JUMP	DoneTest
-           036 : 0A28;  -- 		LOAD	AngBetween
-           037 : 6968;  -- 		ADDI	360
-           038 : 2830;  -- 		JUMP 	DoneTest
-           039 : B80A;  -- 		LOADI 10
-           03A : 9804;  -- 		OUT SSEG1
-           03B : 2839;  -- 		JUMP	RotateLeft
-           03C : B80B;  -- 		LOADI 11
-           03D : 9804;  -- 		OUT SSEG1
-           03E : 283C;  -- 		JUMP	RotateRight
+           024 : B800;  -- 	LOADI  0
+           025 : 9883;  -- 	OUT	   LVELCMD ; stop motors
+           026 : 988B;  -- 	OUT    RVELCMD
+           027 : B85A;  -- 	LOADI 	90; puts angle to target in toDest
+           028 : 1229;  -- 	STORE AngToDest
+           029 : 90C2;  -- 	IN	THETA
+           02A : 2229;  -- 	SUB AngToDest
+           02B : 1228;  -- 	STORE AngBetween
+           02C : 68B4;  -- 	ADDI 180
+           02D : 3033;  -- 	JNEG Add360
+           02E : 6F4C;  -- 	ADDI -180
+           02F : 3836;  -- 	JPOS Sub360
+           030 : 6F4C;  -- 	ADDI -180
+           031 : 3039;  -- 	JNEG	RotateLeft
+           032 : 283C;  -- 	JUMP	RotateRight
+           033 : 0A28;  -- 	LOAD	AngBetween
+           034 : 6968;  -- 	ADDI	360
+           035 : 2830;  -- 	JUMP	DoneTest
+           036 : 0A28;  -- 	LOAD	AngBetween
+           037 : 6968;  -- 	ADDI	360
+           038 : 2830;  -- 	JUMP 	DoneTest
+           039 : B80A;  -- 	LOADI 10
+           03A : 9804;  -- 	OUT SSEG1
+           03B : 2839;  -- 	JUMP	RotateLeft
+           03C : B80B;  -- 	LOADI 11
+           03D : 9804;  -- 	OUT SSEG1
+           03E : 283C;  -- 	JUMP	RotateRight
            03F : 0037;  -- DW 55
            040 : 0048;  -- DW 72
            041 : 0000;  -- DW 0
