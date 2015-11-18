@@ -80,21 +80,40 @@ Main: ; "Real" program starts here.
 	OUT    RESETPOS    ; reset odometer in case wheels moved after programming
 	CALL   UARTClear   ; empty the UART receive FIFO of any old data
 					   ; JUMP   Example1
+	CALL   StartLog
+
+FoundOne:
+	CALL	FindTarget
+	ILOAD	LOWINDEX
+	STORE	CDX
+	OUT     SSEG2
+	LOAD	LOWINDEX
+	ADDI	1
+	STORE	TEMPINDEX
+	ILOAD	TEMPINDEX
+	STORE	CDY
+	
+	
 Rotate:	
+
 	LOADI  0
+	
 	OUT	   LVELCMD ; stop motors
+; To use: store dX and dY in global variables AtanX and AtanY.                 ;
+; Call Atan2                                                                   ;
+; Result (angle [0,359]) is returned in AC
 	OUT    RVELCMD
-	LOADI 	90; puts angle to target in toDest
-	STORE AngToDest
+	CALL GetAngToDest
+	OUT SSEG1
 	IN	THETA
 	SUB AngToDest
 	STORE AngBetween
 	ADDI 180
 	JNEG Add360
+	LOAD AngBetween
 	ADDI -180
 	JPOS Sub360
 DoneTest:
-	ADDI -180
 	JNEG	RotateLeft
 	JUMP	RotateRight
 Add360:	
@@ -103,17 +122,85 @@ Add360:
 	JUMP	DoneTest
 Sub360:		
 	LOAD	AngBetween
-	ADDI	360
+	ADDI	-360
 	JUMP 	DoneTest
 RotateLeft:
 	LOADI 10
-	OUT SSEG1
-	JUMP	RotateLeft
+;	OUT SSEG1
+	LOADI -200
+	OUT	LVELCMD
+	LOADI 200
+	OUT	RVELCMD
+	IN THETA
+	SUB AngToDest
+	CALL Abs
+	ADDI -15
+	JPOS RotateLeft
+	JUMP GoForward
 RotateRight:
 	LOADI 11
-	OUT SSEG1
-	JUMP	RotateRight
+;	OUT SSEG1
+	LOADI 200
+	OUT	LVELCMD
+	LOADI -200
+	OUT	RVELCMD
+	IN THETA
+	SUB AngToDest
+	CALL Abs
+	ADDI -15
+	JPOS RotateRight
+	JUMP GoForward
+GoForward:	
+	LOADI	0
+	OUT		LVELCMD
+	OUT		RVELCMD
+	CALL 	WAIT1
+KeepGoing:
+	LOADI 	300
+	OUT	LVELCMD ; go full speed forward
+	OUT	RVELCMD
+	OUT		SSEG1
+	CALL GetAngToDest
+	IN 	THETA
+	SUB	AngtoDest ; check within angle range
+	CALL 	Abs
+	ADDI	-15 ; check within 10 degree
+	JPOS	Rotate ; jump to rotate if greater
+	IN 		XPOS
+	SUB		CDX
+	ADDI	1
+	STORE	L2X
+	IN		YPOS
+	SUB		CDY
+	STORE	L2Y
+	CALL	L2Estimate
+
+	ADDI	-100
+	JPOS 	KeepGoing
+	LOAD	TOTALPOINTS
+	CALL	IndicateDest
 	
+	LOAD	TOTALPOINTS
+	JZERO	Die
+
+	CALL	ResetPoints
+	JUMP 	FoundOne
+	
+	
+GetAngToDest:	
+	IN     YPOS
+	STORE  CY
+	LOAD   CDY
+	SUB    CY
+	STORE  AtanY
+	IN     XPOS
+	STORE  CX
+	LOAD   CDX
+	SUB    CX
+	STORE  AtanX
+	Call   Atan2
+	STORE AngToDest
+	RETURN
 	
 	
 ; This table is used in example 1.  Remember: DW puts these
@@ -294,6 +381,7 @@ Wloop:
 	IN     TIMER
 	ADDI   -10         ; 1 second in 10Hz.
 	JNEG   Wloop
+	
 	RETURN
 
 ; Subroutine to wait the number of timer counts currently in AC
@@ -862,7 +950,7 @@ Temp2: DW 0
 Temp3: DW 0
 AngBetween: DW 0
 AngToDest: DW 0
-CDX: DW 0      ; current desired X
+CDX: DW 580      ; current desired X
 CDY: DW 0      ; current desired Y
 CDT: DW 0      ; current desired angle
 CX:  DW 0      ; sampled X
@@ -960,3 +1048,153 @@ XPOS:     EQU &HC0  ; Current X-position (read only)
 YPOS:     EQU &HC1  ; Y-position
 THETA:    EQU &HC2  ; Current rotational position of robot (0-359)
 RESETPOS: EQU &HC3  ; write anything here to reset odometry to 0
+
+
+
+ORG		&H600
+
+XPOS1:		DW		-1160
+YPOS1:		DW		290
+XPOS2:		DW		870
+YPOS2:		DW		-580
+XPOS3:		DW		-870
+YPOS3:		DW		-290
+XPOS4:		DW		290
+YPOS4:		DW		1160
+XPOS5:		DW		-580
+YPOS5:		DW		-1160
+XPOS6:		DW		0
+YPOS6:		DW		-1450
+XPOS7:		DW		-870
+YPOS7:		DW		580
+XPOS8:		DW		580
+YPOS8:		DW		-870
+XPOS9:		DW		580
+YPOS9:		DW		1450
+XPOS10:		DW		-580
+YPOS10:		DW		1160
+XPOS11:		DW		870
+YPOS11:		DW		-870
+XPOS12:		DW		-1160
+YPOS12:		DW		-580
+PTINDEX:	DW		&H600
+TOTALPOINTS:	DW		12
+POINTSLEFT:	DW		12
+TEMPINDEX:	DW		&H600
+NEWDIST:	DW		&H7FFF
+LOWDIST:	DW		&H7FFF
+LOWINDEX:	DW		&H600
+TEMPX:		DW		0
+TEMPY:		DW		0
+XCURR:		DW		0
+YCURR:		DW		0
+MAXDIST:	DW		&H7FFF
+
+FindTarget:
+
+	LOAD 	TOTALPOINTS
+	STORE	POINTSLEFT
+	LOAD	PTINDEX		;Points to first XPOS
+	STORE	TEMPINDEX
+	STORE	LOWINDEX
+	LOAD	MAXDIST
+	STORE	LOWDIST
+	IN		XPOS
+	STORE	XCURR
+	IN		YPOS
+	STORE	YCURR
+
+GetDistances:
+
+	ILOAD	TEMPINDEX
+	SUB		XCURR
+	ADD		ONE
+	STORE	L2X
+	LOAD	TEMPINDEX
+	ADD		ONE
+	STORE	TEMPINDEX
+	ILOAD	TEMPINDEX
+	SUB		YCURR
+	STORE	L2Y
+	CALL	L2Estimate
+	STORE	NEWDIST
+	SUB		LOWDIST
+	JPOS	GetNext
+	
+SetDistance:
+
+	LOAD	NEWDIST
+	STORE	LOWDIST
+	LOAD	TEMPINDEX
+	SUB		ONE
+	STORE	LOWINDEX
+	ADD		ONE
+	STORE	TEMPINDEX
+	
+GetNext:
+
+	LOAD	TEMPINDEX
+	ADD		ONE
+	STORE	TEMPINDEX
+	LOAD	POINTSLEFT
+	SUB		ONE
+	STORE	POINTSLEFT
+	JPOS	GetDistances
+	LOAD	TOTALPOINTS
+	SUB		ONE
+	STORE	TOTALPOINTS
+	
+	RETURN
+
+; FUNCTION
+ResetPoints:
+
+	LOAD	TOTALPOINTS
+	STORE	POINTSLEFT
+	LOAD	PTINDEX
+	STORE	TEMPINDEX
+	
+FindUsed:
+
+	LOAD	TEMPINDEX
+	SUB		LOWINDEX
+	JZERO	ResetOthers
+	LOAD	TEMPINDEX
+	ADD		TWO
+	STORE	TEMPINDEX
+	LOAD	POINTSLEFT
+	SUB		ONE
+	JZERO	FindTarget
+	STORE	POINTSLEFT
+	JUMP	FindUsed
+	
+ResetOthers:
+
+	LOAD	TEMPINDEX ;Starts equal to value that needs to be replaced
+	ADD		TWO
+	STORE	TEMPINDEX
+	ILOAD	TEMPINDEX
+	STORE	TEMPX
+	LOAD	TEMPINDEX
+	ADD		ONE
+	STORE	TEMPINDEX
+	ILOAD	TEMPINDEX
+	STORE	TEMPY
+	LOAD	TEMPINDEX
+	SUB		TWO
+	STORE	TEMPINDEX ;Points at previous Y
+	LOAD	TEMPY
+	ISTORE	TEMPINDEX
+	LOAD	TEMPINDEX
+	SUB		ONE
+	STORE	TEMPINDEX
+	LOAD	TEMPX
+	ISTORE	TEMPINDEX
+	LOAD	TEMPINDEX
+	ADD		TWO
+	STORE	TEMPINDEX ;Points at next X
+	LOAD	POINTSLEFT
+	SUB		ONE
+	STORE	POINTSLEFT
+	JPOS	ResetOthers
+	RETURN
